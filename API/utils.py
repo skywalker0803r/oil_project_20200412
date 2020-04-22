@@ -212,3 +212,30 @@ class transformerB(object):
         x_hc = self._calculate_output(xna,shc,self.hc) #XHC
         x_he = self._calculate_output(xna,she,self.he) #XHE
         return pd.concat([x_le,x_hc,x_he],axis=1)
+
+class energy_net(nn.Module):
+    def __init__(self,input_shape,output_shape):
+        super(energy_net,self).__init__()
+        self.fc1 = Linear(input_shape,128)
+        self.fc2 = Linear(128,output_shape)
+        self.act_fn = Tanh()
+    
+    def forward(self,x):
+        x = self.fc1(x)
+        x = self.act_fn(x)
+        x = self.fc2(x)
+        return x
+    
+class ANN_energy_wrapper(object):
+    def __init__(self,x_col,y_col,scaler,net):
+        self.x_col = x_col
+        self.y_col = y_col
+        self.scaler = scaler
+        self.net = net
+    
+    def predict(self,x):
+        x = self.scaler.transform(x)
+        x = torch.tensor(x,dtype=torch.float).cuda()
+        y = self.net(x).detach().cpu().numpy()
+        y = pd.DataFrame(y,columns=self.y_col)
+        return y
